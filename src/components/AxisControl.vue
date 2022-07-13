@@ -15,7 +15,7 @@
         <th>COIN</th>
       </thead>
       <tbody>
-        <template v-for="axis in axises">
+        <tr v-for="axis in axises">
           <td>{{ axis.axis_name }}</td>
           <td><input type="number" v-model="axis.speed" /></td>
           <td><input type="number" v-model="axis.index" /></td>
@@ -27,7 +27,7 @@
           <td>{{ axis.alm }}</td>
           <td>{{ axis.pulse }}</td>
           <td>{{ axis.coin }}</td>
-        </template>
+        </tr>
       </tbody>
     </table>
   </div>

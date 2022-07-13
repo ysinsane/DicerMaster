@@ -1,11 +1,12 @@
 use std::{
-    string,
     sync::{Arc, Mutex},
 };
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Debug)]
 pub struct AxisInfo {
     axis_name: String,
+    speed: f32,
+    index: f32,
     current: f32,
     org: bool,
     cw: bool,
@@ -27,17 +28,24 @@ pub struct VirtualManager;
 
 impl AxisManage for VirtualManager {
     fn get_axis_data(&self) -> Vec<AxisInfo> {
-        vec![AxisInfo {
-            axis_name: String::from("X"),
-            current: 20f32,
-            org: true,
-            cw: false,
-            ccw: false,
-            setup: false,
-            alm: false,
-            pulse: false,
-            coin: false,
-        }]
+        let axis_names = vec!["X", "Y1", "Y2", "Z1", "Z2", "TT"];
+        let mut axis_data = vec![];
+        for axis_name in axis_names {
+            axis_data.push(AxisInfo {
+                axis_name: String::from(axis_name),
+                speed: 10.0,
+                index:5.0,
+                current: 21f32,
+                org: true,
+                cw: false,
+                ccw: false,
+                setup: false,
+                alm: false,
+                pulse: false,
+                coin: false,
+            })
+        }
+        axis_data
     }
 }
 impl Default for VirtualManager {
