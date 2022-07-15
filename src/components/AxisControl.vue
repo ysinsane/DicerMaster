@@ -20,13 +20,13 @@
           <td><input type="number" v-model="axis.speed" /></td>
           <td><input type="number" v-model="axis.index" /></td>
           <td>{{ axis.current }}</td>
-          <td>{{ axis.org }}</td>
-          <td>{{ axis.cw }}</td>
-          <td>{{ axis.ccw }}</td>
-          <td>{{ axis.setup }}</td>
-          <td>{{ axis.alm }}</td>
-          <td>{{ axis.pulse }}</td>
-          <td>{{ axis.coin }}</td>
+          <td>{{ axis.io_status.org }}</td>
+          <td>{{ axis.io_status.cw }}</td>
+          <td>{{ axis.io_status.ccw }}</td>
+          <td>{{ axis.io_status.setup }}</td>
+          <td>{{ axis.io_status.alm }}</td>
+          <td>{{ axis.io_status.pulse }}</td>
+          <td>{{ axis.io_status.coin }}</td>
         </tr>
       </tbody>
     </table>
@@ -43,6 +43,10 @@ onMounted(async () => {
   var res = await GetAxisData();
   axises.value = res.data;
 });
+
+function RefreshAxisData(axis_name:string) {
+  axises
+}
 </script>
 
 <style scoped></style>

@@ -1,33 +1,19 @@
-use std::{
-    sync::{Arc, Mutex},
-};
+pub mod motion;
 
-#[derive(serde::Serialize, Debug)]
-pub struct AxisInfo {
-    axis_name: String,
-    speed: f32,
-    index: f32,
-    current: f32,
-    org: bool,
-    cw: bool,
-    ccw: bool,
-    setup: bool,
-    alm: bool,
-    pulse: bool,
-    coin: bool,
-}
+use std::sync::{Arc, Mutex};
 
-pub trait AxisManage {
-    fn get_axis_data(&self) -> Vec<AxisInfo>;
-}
-
-#[derive(Default)]
-pub struct AxisManager;
+pub use motion::{AxisInfo, Motion, MotionError};
 
 pub struct VirtualManager;
 
-impl AxisManage for VirtualManager {
-    fn get_axis_data(&self) -> Vec<AxisInfo> {
+#[allow(dead_code)]
+#[allow(unused_variables)]
+impl Motion for VirtualManager {
+    fn abs_move(move_params: Vec<motion::MoveParam>) -> Result<(), motion::MotionError> {
+        todo!()
+    }
+
+    fn get_all_axis_data(&self) -> Vec<AxisInfo> {
         let axis_names = vec!["X", "Y1", "Y2", "Z1", "Z2", "TT"];
         let mut axis_data = vec![];
         for axis_name in axis_names {
@@ -36,16 +22,30 @@ impl AxisManage for VirtualManager {
                 speed: 10.0,
                 index:5.0,
                 current: 21f32,
-                org: true,
-                cw: false,
-                ccw: false,
-                setup: false,
-                alm: false,
-                pulse: false,
-                coin: false,
+                io_status: motion::AxisIoStatus { org: true, cw: true, ccw: true, setup: true, alm: true, pulse: true, coin: true }
             })
         }
         axis_data
+    }
+
+    fn get_axis_data(&self) -> Result<AxisInfo, MotionError> {
+        todo!()
+    }
+
+    fn wait_axises(move_params: Vec<String>) -> Result<(), MotionError> {
+        todo!()
+    }
+
+    fn get_axis_posion(axis_name:String) -> Result<f32, MotionError> {
+        todo!()
+    }
+
+    fn get_axis_io(axis_name:String) -> Result<motion::AxisIoStatus, MotionError> {
+        todo!()
+    }
+
+    fn init_config(&self, config: motion::MotionConfig) -> Result<(), MotionError> {
+        todo!()
     }
 }
 impl Default for VirtualManager {
@@ -55,10 +55,10 @@ impl Default for VirtualManager {
 }
 
 #[cfg(feature = "virtual_motion")]
-pub type AxisDriverU = AxisManager;
+pub type AxisManagerUsing = AxisManager;
 #[cfg(not(feature = "virtual_motion"))]
-pub type AxisDriverU = VirtualManager;
+pub type AxisManagerUsing = VirtualManager;
 
 pub struct AppState {
-    pub axis_manager: Arc<Mutex<AxisDriverU>>,
+    pub axis_manager: Arc<Mutex<AxisManagerUsing>>,
 }
