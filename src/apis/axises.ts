@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke, InvokeArgs } from "@tauri-apps/api/tauri";
 
 export interface AxisConifg {
   axis_name: String;
@@ -23,10 +23,16 @@ interface AxisIoStatus {
   pulse: boolean;
   coin: boolean;
 }
-interface Response<T> {
+interface Response<T = null> {
   message: string;
   code: number;
   data: T;
+}
+
+export interface MoveParam {
+  axis_name: String;
+  speed: number | null;
+  destination: number | null;
 }
 
 export async function GetAxisData(): Promise<Response<AxisInfo[]>> {
@@ -35,10 +41,13 @@ export async function GetAxisData(): Promise<Response<AxisInfo[]>> {
   return result;
 }
 
-function try_invoke<T>(command_name: string): Promise<T> {
+function try_invoke<T>(
+  command_name: string,
+  args?: InvokeArgs | undefined
+): Promise<T> {
   return new Promise(async (resolve, reject) => {
     try {
-      var r: T = await invoke(command_name);
+      var r: T = await invoke(command_name, args);
       resolve(r);
     } catch (error: any) {
       if (error.code) {
@@ -61,6 +70,15 @@ export async function GetAxisConfigs(): Promise<Response<AxisConifg[]>> {
   return try_invoke<Response<AxisConifg[]>>("get_axis_configs");
 }
 
-export async function InitAxisConfig(): Promise<Response<AxisConifg[]>> {
-  return try_invoke<Response<AxisConifg[]>>("init_axis_config");
+export async function InitAxisConfig(): Promise<Response> {
+  return try_invoke<Response>("init_axis_config");
+}
+export async function AbsMove(moveParams: MoveParam[]): Promise<Response> {
+  return try_invoke<Response>("abs_move", { moveParams });
+}
+export async function WaitAxises(axisNames: String[]): Promise<Response> {
+  return try_invoke<Response>("wait_axises", { axisNames });
+}
+export async function StopAxis(axisName: String): Promise<Response> {
+  return try_invoke<Response>("stop_axis", { axisName });
 }

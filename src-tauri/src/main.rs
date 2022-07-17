@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use app::{
-    motion::{AxisConifg, MotionConfig},
+    motion::{AxisConifg, MotionConfig, MoveParam},
     AppState, AxisInfo, Motion, MotionError,
 };
 
@@ -89,12 +89,41 @@ async fn init_axis_config(state: tauri::State<'_, AppState>) -> Result<CustomRes
     let motion_config = MotionConfig { axis_configs: x };
 
     axis_manager.init_config(motion_config)?;
-    let res = CustomResponse {
-        message: String::from("success"),
-        code: 200,
-        data: None,
-    };
-    Ok(res)
+
+    Ok(Default::default())
+}
+
+#[tauri::command]
+async fn abs_move(
+    state: tauri::State<'_, AppState>,
+    move_params: Vec<MoveParam>,
+) -> Result<CustomResponse<()>, AppError> {
+    let arc_clone = Arc::clone(&state.axis_manager);
+    let axis_manager = arc_clone.lock().unwrap();
+    axis_manager.abs_move(move_params)?;
+    Ok(Default::default())
+}
+
+#[tauri::command]
+async fn wait_axises(
+    state: tauri::State<'_, AppState>,
+    axis_names: Vec<String>,
+) -> Result<CustomResponse<()>, AppError> {
+    let arc_clone = Arc::clone(&state.axis_manager);
+    let axis_manager = arc_clone.lock().unwrap();
+    axis_manager.wait_axises(axis_names)?;
+    Ok(Default::default())
+}
+
+#[tauri::command]
+async fn stop_axis(
+    state: tauri::State<'_, AppState>,
+    axis_name: String,
+) -> Result<CustomResponse<()>, AppError> {
+    let arc_clone = Arc::clone(&state.axis_manager);
+    let axis_manager = arc_clone.lock().unwrap();
+    axis_manager.stop_axis(axis_name)?;
+    Ok(Default::default())
 }
 
 fn main() {
@@ -106,7 +135,10 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_all_axis_data,
             get_axis_configs,
-            init_axis_config
+            init_axis_config,
+            abs_move,
+            wait_axises,
+            stop_axis
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

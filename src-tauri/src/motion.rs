@@ -1,6 +1,6 @@
 use std::string::String;
 
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize,serde::Deserialize, Debug)]
 pub struct MoveParam {
     pub axis_name: String,
     pub speed: Option<f64>,
@@ -51,8 +51,9 @@ pub enum MotionError {
 }
 pub type MotionResult<T> = Result<T, MotionError>;
 pub trait Motion {
-    fn abs_move(move_params: Vec<MoveParam>) -> Result<(), MotionError>;
-    fn wait_axises(move_params: Vec<String>) -> Result<(), MotionError>;
+    fn abs_move(&self, move_params: Vec<MoveParam>) -> Result<(), MotionError>;
+    fn wait_axises(&self, move_params: Vec<String>) -> Result<(), MotionError>;
+    fn stop_axis(&self, move_params: String) -> Result<(), MotionError>;
     fn get_all_axis_data(&self) -> MotionResult<Vec<AxisInfo>>;
     fn get_axis_posion(&self, axis_name: &str) -> Result<f64, MotionError>;
     fn get_axis_io(&self, axis_name: &str) -> Result<AxisIoStatus, MotionError>;
@@ -80,12 +81,12 @@ pub struct MotionModule {
 #[allow(dead_code)]
 #[allow(unused_variables)]
 impl Motion for MotionModule {
-    fn abs_move(move_params: Vec<MoveParam>) -> Result<(), MotionError> {
+    fn abs_move(&self, move_params: Vec<MoveParam>) -> Result<(), MotionError> {
         println!("Axises Moving: {:?}", move_params);
-        todo!()
+        Ok(())
     }
 
-    fn wait_axises(axis_names: Vec<String>) -> Result<(), MotionError> {
+    fn wait_axises(&self, axis_names: Vec<String>) -> Result<(), MotionError> {
         println!("Axises Moving: {:?}", axis_names);
         todo!()
     }
@@ -130,6 +131,11 @@ impl Motion for MotionModule {
 
     fn get_axis_configs(&self) -> Vec<AxisConifg> {
         self.motion_config.axis_configs.clone()
+    }
+
+    fn stop_axis(&self, axis_name: String) -> Result<(), MotionError> {
+        println!("停止{}轴", axis_name);
+        Ok(())
     }
 }
 
