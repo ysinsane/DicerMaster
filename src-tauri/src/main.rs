@@ -42,18 +42,6 @@ impl From<MotionError> for AppError {
     }
 }
 
-#[allow(dead_code)]
-#[allow(unused_variables)]
-impl<T> CustomResponse<T> {
-    fn error(message: String, code: i32) -> Self {
-        CustomResponse {
-            message: message,
-            code: code,
-            data: None,
-        }
-    }
-}
-
 #[tauri::command]
 async fn get_all_axis_data(state: tauri::State<'_, AppState>) -> Result<CustomResponse<Vec<AxisInfo>>, AppError> {
     let arc_clone = Arc::clone(&state.axis_manager);
