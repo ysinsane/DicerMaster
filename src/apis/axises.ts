@@ -76,8 +76,8 @@ export async function InitAxisConfig(): Promise<Response> {
 export async function AbsMove(moveParams: MoveParam[]): Promise<Response> {
   return try_invoke<Response>("abs_move", { moveParams });
 }
-export async function WaitAxises(axisNames: String[]): Promise<Response> {
-  return try_invoke<Response>("wait_axises", { axisNames });
+export async function WaitAxises(axisNames: String[]): Promise<Response<Boolean>> {
+  return try_invoke<Response<Boolean>>("wait_axises", { axisNames });
 }
 export async function StopAxis(axisName: String): Promise<Response> {
   return try_invoke<Response>("stop_axis", { axisName });

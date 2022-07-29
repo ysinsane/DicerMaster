@@ -1,6 +1,8 @@
-use std::string::String;
+use std::{string::String, time::Duration};
 
-#[derive(serde::Serialize,serde::Deserialize, Debug)]
+use crate::motion_driver::{MotionDriver, MotionDriverError};
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct MoveParam {
     pub axis_name: String,
     pub speed: Option<f64>,
@@ -36,23 +38,37 @@ pub struct AxisIoStatus {
 
 pub struct MotionConfig {
     pub axis_configs: Vec<AxisConifg>,
+    pub connect_string: String,
 }
 
 impl Default for MotionConfig {
     fn default() -> Self {
-        Self { axis_configs: Default::default() }
+        Self {
+            axis_configs: Default::default(),
+            connect_string: Default::default(),
+        }
     }
 }
 
 #[derive(Debug)]
 pub enum MotionError {
     ConnectionError,
-    NotInitialnized
+    NotInitialnized,
+    DriverError(i32),
 }
+
+impl From<MotionDriverError> for MotionError {
+    fn from(err: MotionDriverError) -> Self {
+        MotionError::DriverError(err.code)
+    }
+}
+
 pub type MotionResult<T> = Result<T, MotionError>;
+
+/// 每个函数都打开一个连接
 pub trait Motion {
     fn abs_move(&self, move_params: Vec<MoveParam>) -> Result<(), MotionError>;
-    fn wait_axises(&self, move_params: Vec<String>) -> Result<(), MotionError>;
+    fn wait_axises(&self, move_params: Vec<String>) -> Result<bool, MotionError>;
     fn stop_axis(&self, move_params: String) -> Result<(), MotionError>;
     fn get_all_axis_data(&self) -> MotionResult<Vec<AxisInfo>>;
     fn get_axis_posion(&self, axis_name: &str) -> Result<f64, MotionError>;
@@ -72,26 +88,44 @@ pub trait Motion {
     fn init_config(&mut self, config: MotionConfig) -> Result<(), MotionError>;
 
     fn get_axis_configs(&self) -> Vec<AxisConifg>;
+
+    fn new(driver: Box<dyn MotionDriver>) -> Self;
 }
 
 pub struct MotionModule {
     motion_config: MotionConfig,
+    driver: Box<dyn MotionDriver>,
 }
 
 #[allow(dead_code)]
 #[allow(unused_variables)]
 impl Motion for MotionModule {
     fn abs_move(&self, move_params: Vec<MoveParam>) -> Result<(), MotionError> {
-        println!("Axises Moving: {:?}", move_params);
+        for move_param in move_params {
+            self.driver.abs_move(
+                move_param.axis_name,
+                move_param.destination.unwrap(),
+                move_param.speed.unwrap(),
+            )?
+        }
         Ok(())
     }
 
-    fn wait_axises(&self, axis_names: Vec<String>) -> Result<(), MotionError> {
-        println!("Axises Moving: {:?}", axis_names);
-        todo!()
+    fn wait_axises(&self, axis_names: Vec<String>) -> Result<bool, MotionError> {
+        let mut all_stop = true;
+        for axis_name in &axis_names {
+            let done = self.driver.check_done(&axis_name)?;
+            if !done {
+                all_stop = false
+            }
+        }
+        if all_stop {
+           return Ok(true)
+        }
+        Ok(false)
     }
 
-    fn get_all_axis_data(&self) -> MotionResult<Vec<AxisInfo>>{
+    fn get_all_axis_data(&self) -> MotionResult<Vec<AxisInfo>> {
         let mut axis_data = vec![];
         for axis_cfg in self.get_axis_configs() {
             axis_data.push(self.get_axis_data(&axis_cfg.axis_name)?);
@@ -100,7 +134,8 @@ impl Motion for MotionModule {
     }
 
     fn get_axis_posion(&self, axis_name: &str) -> Result<f64, MotionError> {
-        Ok(0.0)
+        let pos = self.driver.get_position(axis_name)?;
+        Ok(pos)
     }
 
     fn get_axis_io(&self, axis_name: &str) -> Result<AxisIoStatus, MotionError> {
@@ -134,13 +169,13 @@ impl Motion for MotionModule {
     }
 
     fn stop_axis(&self, axis_name: String) -> Result<(), MotionError> {
-        println!("停止{}轴", axis_name);
+        self.driver.stop(axis_name)?;
         Ok(())
     }
-}
-
-impl Default for MotionModule {
-    fn default() -> Self {
-        Self { motion_config: Default::default() }
+    fn new(driver: Box<dyn MotionDriver>) -> Self {
+        Self {
+            motion_config: Default::default(),
+            driver: driver,
+        }
     }
 }

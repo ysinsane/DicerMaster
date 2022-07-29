@@ -1,4 +1,5 @@
 pub mod motion;
+pub mod motion_driver;
 
 use std::sync::{Arc, Mutex};
 

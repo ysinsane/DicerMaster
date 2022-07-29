@@ -3,12 +3,9 @@
     windows_subsystem = "windows"
 )]
 
-use std::sync::Arc;
+use std::{sync::{Arc, Mutex}, string};
 
-use app::{
-    motion::{AxisConifg, MotionConfig, MoveParam},
-    AppState, AxisInfo, Motion, MotionError,
-};
+use app::{motion_driver::{VirtualMotionDriver}, motion::{AxisConifg, MotionConfig, MoveParam}, AppState, AxisInfo, Motion, MotionError, AxisManagerUsing};
 
 #[derive(serde::Serialize)]
 struct CustomResponse<T> {
@@ -79,14 +76,14 @@ async fn init_axis_config(state: tauri::State<'_, AppState>) -> Result<CustomRes
         .iter()
         .map(|name| AxisConifg {
             axis_name: name.to_string(),
-            speed: 2000.00001,
+            speed: 5.1,
             index: 10.1,
             max_work_speed: 12.1,
             init_position: 0.0,
         })
         .collect();
 
-    let motion_config = MotionConfig { axis_configs: x };
+    let motion_config = MotionConfig { axis_configs: x, connect_string: String::from("") };
 
     axis_manager.init_config(motion_config)?;
 
@@ -108,11 +105,15 @@ async fn abs_move(
 async fn wait_axises(
     state: tauri::State<'_, AppState>,
     axis_names: Vec<String>,
-) -> Result<CustomResponse<()>, AppError> {
+) -> Result<CustomResponse<bool>, AppError> {
     let arc_clone = Arc::clone(&state.axis_manager);
     let axis_manager = arc_clone.lock().unwrap();
-    axis_manager.wait_axises(axis_names)?;
-    Ok(Default::default())
+    let r = axis_manager.wait_axises(axis_names)?;
+    Ok(CustomResponse{
+        code:200,
+        message:String::from("OK"),
+        data: Some(r)
+    })
 }
 
 #[tauri::command]
@@ -127,10 +128,12 @@ async fn stop_axis(
 }
 
 fn main() {
+    let motion_driver = VirtualMotionDriver::new();
+    let axis_manager = AxisManagerUsing::new(Box::new(motion_driver));
     tauri::Builder::default()
         .any_thread()
         .manage(AppState {
-            axis_manager: Default::default(),
+            axis_manager: Arc::new(Mutex::new(axis_manager)),
         })
         .invoke_handler(tauri::generate_handler![
             get_all_axis_data,

@@ -32,17 +32,18 @@
     </table>
     <div class="ctr-btn">
       <button @mousedown="SpeedMove(true)" @mouseup="Stop">Move +</button>
-      <button @mousedown="SpeedMove(true)" @mouseup="Stop">Move +</button>
-      <button @mousedown="IndexMove(true)" @mouseup="Stop">Index +</button>
-      <button @mousedown="IndexMove(false)" @mouseup="Stop">Index -</button>
+      <button @mousedown="SpeedMove(false)" @mouseup="Stop">Move -</button>
+      <button @mousedown="IndexMove(true)" @mouseup="StopStepping">Index +</button>
+      <button @mousedown="IndexMove(false)" @mouseup="StopStepping">Index -</button>
+      <button @click="RefreshAxisData">Refresh</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 // import {GetAxisData, AxisData} from '@/apis/axises'
-import { GetAxisData, StopAxis, InitAxisConfig, AxisInfo, GetAxisConfigs, AxisConifg, AbsMove } from "../apis/axises";
+import { GetAxisData, StopAxis, InitAxisConfig, AxisInfo, GetAxisConfigs, AxisConifg, AbsMove, WaitAxises } from "../apis/axises";
 interface DisplayData {
   axis_info: AxisInfo | null,
   axis_config: AxisConifg
@@ -50,6 +51,8 @@ interface DisplayData {
 }
 let selected_axis_name = ref(new String())
 let axises = ref(new Map<String, DisplayData>);
+let handle: any;
+let index_moving = false;
 onMounted(async () => {
   await InitAxisConfig();
   var res = await GetAxisConfigs();
@@ -61,9 +64,13 @@ onMounted(async () => {
       axis_info: null
     })
   });
-  await RefreshAxisData();
+  handle = setInterval(async () => {
+    await RefreshAxisData();
+  }, 1300);
 });
-
+onUnmounted(() => {
+  clearInterval(handle)
+})
 async function RefreshAxisData() {
   var res = await GetAxisData();
   res.data.forEach(element => {
@@ -81,22 +88,47 @@ async function SpeedMove(pluse: Boolean) {
     await AbsMove([{
       axis_name: axis_config.axis_name,
       speed: axis_config.speed,
-      destination: pluse ? 500000 : 0 // ToDo: 应该到正软限位和负限位
+      destination: pluse ? 500 : 0 // ToDo: 应该到正软限位和负限位
     }])
   }
 }
 
 async function IndexMove(pluse: Boolean) {
-  let axis_config = axises.value.get(selected_axis_name.value)?.axis_config
-  let axis_info = axises.value.get(selected_axis_name.value)?.axis_info
+  index_moving = true
+  let i = 0
+  while (index_moving) {
+    console.log("步进前");
+    await StepMove();
+    i += 1
+    console.log("步进后", i);
 
-  if (axis_config && axis_info) {
-    await AbsMove([{
-      axis_name: axis_config.axis_name,
-      speed: axis_config.speed,
-      destination: axis_info.current + (pluse ? 1 : -1) * axis_config.index
-    }])
   }
+
+  async function StepMove() {
+    let axis_config = axises.value.get(selected_axis_name.value)?.axis_config;
+    let axis_info = axises.value.get(selected_axis_name.value)?.axis_info;
+
+    if (axis_config && axis_info) {
+      let destination = axis_info.current + (pluse ? 1 : -1) * axis_config.index
+      await AbsMove([{
+        axis_name: axis_config.axis_name,
+        speed: axis_config.speed,
+        destination: destination
+      }]);
+      await b();
+      async function b() {
+        console.log("前端检查轴运动结束没");
+        
+        let r = await WaitAxises([selected_axis_name.value])
+        if (!r.data)
+          window.setTimeout(b, 1000)
+      }
+    }
+  }
+}
+
+function StopStepping() {
+  index_moving = false
 }
 
 async function Stop() {
